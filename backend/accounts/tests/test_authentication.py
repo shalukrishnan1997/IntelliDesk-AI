@@ -1,11 +1,12 @@
 from django.contrib.auth import get_user_model
+
 from rest_framework.test import APITestCase
+
 
 User = get_user_model()
 
 
 class AuthenticationTests(APITestCase):
-
     def test_user_registration(self):
         response = self.client.post(
             "/api/auth/register/",
@@ -124,3 +125,65 @@ class AuthenticationTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    def test_weak_password_registration(self):
+        response = self.client.post(
+            "/api/auth/register/",
+            {
+                "username": "weak_user",
+                "email": "weak@example.com",
+                "password": "123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_jwt_login_with_invalid_password(self):
+        User.objects.create_user(
+            username="invalid_login_user",
+            email="invalid@example.com",
+            password="StrongPassword@123",
+        )
+
+        response = self.client.post(
+            "/api/auth/token/",
+            {
+                "username": "invalid_login_user",
+                "password": "WrongPassword@123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertNotIn("access", response.data)
+        self.assertNotIn("refresh", response.data)
+
+    def test_jwt_refresh_token(self):
+        User.objects.create_user(
+            username="refresh_user",
+            email="refresh@example.com",
+            password="StrongPassword@123",
+        )
+
+        login_response = self.client.post(
+            "/api/auth/token/",
+            {
+                "username": "refresh_user",
+                "password": "StrongPassword@123",
+            },
+            format="json",
+        )
+
+        refresh_token = login_response.data["refresh"]
+
+        refresh_response = self.client.post(
+            "/api/auth/token/refresh/",
+            {
+                "refresh": refresh_token,
+            },
+            format="json",
+        )
+
+        self.assertEqual(refresh_response.status_code, 200)
+        self.assertIn("access", refresh_response.data)
