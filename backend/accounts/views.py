@@ -1,7 +1,9 @@
 from django.contrib.auth import get_user_model
+
 from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
+from .permissions import IsAdminOrManagerRole
 from .serializers import (
     UserProfileSerializer,
     UserRegistrationSerializer,
@@ -23,3 +25,9 @@ class UserProfileView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class UserListView(generics.ListAPIView):
+    queryset = User.objects.all().order_by("username")
+    serializer_class = UserProfileSerializer
+    permission_classes = (IsAdminOrManagerRole,)
