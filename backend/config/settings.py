@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     # Local applications
     "accounts",
     "tickets",
+     "django_filters",
 ]
 
 MIDDLEWARE = [
