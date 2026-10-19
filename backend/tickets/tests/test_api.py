@@ -120,9 +120,10 @@ class TicketAPITests(APITestCase):
             response.status_code,
             status.HTTP_200_OK,
         )
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(
-            response.data[0]["id"],
+            response.data["results"][0]["id"],
             str(self.customer_ticket.id),
         )
 
@@ -135,9 +136,10 @@ class TicketAPITests(APITestCase):
             response.status_code,
             status.HTTP_200_OK,
         )
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(
-            response.data[0]["id"],
+            response.data["results"][0]["id"],
             str(self.customer_ticket.id),
         )
 
@@ -150,7 +152,8 @@ class TicketAPITests(APITestCase):
             response.status_code,
             status.HTTP_200_OK,
         )
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data["count"], 2)
+        self.assertEqual(len(response.data["results"]), 2)
 
     def test_admin_can_list_all_tickets(self):
         self.authenticate(self.admin)
@@ -161,7 +164,8 @@ class TicketAPITests(APITestCase):
             response.status_code,
             status.HTTP_200_OK,
         )
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data["count"], 2)
+        self.assertEqual(len(response.data["results"]), 2)
 
     def test_customer_can_retrieve_own_ticket(self):
         self.authenticate(self.customer)
@@ -207,7 +211,7 @@ class TicketAPITests(APITestCase):
         self.authenticate(self.customer)
 
         response = self.client.get(
-            "/api/tickets/categories/"  
+            "/api/tickets/categories/"
         )
 
         self.assertEqual(
