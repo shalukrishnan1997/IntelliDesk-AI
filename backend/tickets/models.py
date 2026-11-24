@@ -35,6 +35,7 @@ class Category(models.Model):
         return self.name
 
 
+
 class Ticket(models.Model):
     class Status(models.TextChoices):
         OPEN = "open", "Open"
@@ -111,3 +112,38 @@ class Ticket(models.Model):
 
     def __str__(self):
         return self.title
+
+
+
+class TicketComment(models.Model):
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    ticket = models.ForeignKey(
+        Ticket,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ticket_comments",
+    )
+    message = models.TextField()
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ("created_at",)
+        indexes = [
+            models.Index(fields=("ticket", "created_at")),
+        ]
+
+    def __str__(self):
+        return f"{self.author.username}: {self.message[:50]}"

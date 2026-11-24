@@ -1,6 +1,6 @@
-from rest_framework import serializers
 
-from .models import Category, Ticket
+from rest_framework import serializers
+from .models import Category, Ticket, TicketComment
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -104,4 +104,31 @@ class TicketSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(errors)
 
         return attrs
-        
+
+
+
+class TicketCommentSerializer(serializers.ModelSerializer):
+    author_username = serializers.CharField(
+        source="author.username",
+        read_only=True,
+    )
+
+    class Meta:
+        model = TicketComment
+        fields = (
+            "id",
+            "ticket",
+            "author",
+            "author_username",
+            "message",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "ticket",
+            "author",
+            "author_username",
+            "created_at",
+            "updated_at",
+        )

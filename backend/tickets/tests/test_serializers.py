@@ -2,9 +2,10 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 
-from tickets.models import Category, Ticket
+from tickets.models import Category, Ticket, TicketComment
 from tickets.serializers import (
     CategorySerializer,
+    TicketCommentSerializer,
     TicketSerializer,
 )
 
@@ -188,3 +189,76 @@ class TicketSerializerTests(TestCase):
 
         self.assertFalse(serializer.is_valid())
         self.assertIn("assigned_to", serializer.errors)
+
+
+class TicketCommentSerializerTests(TestCase):
+    def setUp(self):
+        self.customer = User.objects.create_user(
+            username="comment_serializer_customer",
+            email="comment_serializer_customer@example.com",
+            password="StrongPassword@123",
+            role="customer",
+        )
+        self.ticket = Ticket.objects.create(
+            title="Serializer comment ticket",
+            description="Testing the comment serializer.",
+            created_by=self.customer,
+        )
+
+    def test_comment_serializer_creates_comment(self):
+        serializer = TicketCommentSerializer(
+            data={
+                "message": "Please provide an update.",
+            }
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+        comment = serializer.save(
+            ticket=self.ticket,
+            author=self.customer,
+        )
+
+        self.assertEqual(comment.ticket, self.ticket)
+        self.assertEqual(comment.author, self.customer)
+        self.assertEqual(
+            comment.message,
+            "Please provide an update.",
+        )
+
+    def test_comment_serializer_returns_author_username(self):
+        comment = TicketComment.objects.create(
+            ticket=self.ticket,
+            author=self.customer,
+            message="This is a test comment.",
+        )
+
+        data = TicketCommentSerializer(comment).data
+
+        self.assertEqual(
+            data["author_username"],
+            "comment_serializer_customer",
+        )
+        self.assertEqual(
+            data["ticket"],
+            self.ticket.id,
+        )
+
+    def test_ticket_and_author_are_read_only(self):
+        serializer = TicketCommentSerializer(
+            data={
+                "ticket": self.ticket.id,
+                "author": self.customer.id,
+                "message": "Read-only fields test.",
+            }
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertNotIn("ticket", serializer.validated_data)
+        self.assertNotIn("author", serializer.validated_data)
+
+    def test_comment_requires_message(self):
+        serializer = TicketCommentSerializer(data={})
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("message", serializer.errors)
