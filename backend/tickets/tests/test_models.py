@@ -1,9 +1,7 @@
 import uuid
-
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-
-from tickets.models import Category, Ticket
+from tickets.models import Category, Ticket, TicketComment
 
 
 User = get_user_model()
@@ -99,4 +97,58 @@ class TicketModelTests(TestCase):
 
         self.assertFalse(
             Ticket.objects.filter(id=ticket_id).exists()
+        )
+
+class TicketCommentModelTests(TestCase):
+    def setUp(self):
+        self.customer = User.objects.create_user(
+            username="comment_customer",
+            email="comment_customer@example.com",
+            password="StrongPassword@123",
+            role="customer",
+        )
+        self.ticket = Ticket.objects.create(
+            title="Comment test ticket",
+            description="Testing ticket comments.",
+            created_by=self.customer,
+        )
+
+    def create_comment(self, **kwargs):
+        comment_data = {
+            "ticket": self.ticket,
+            "author": self.customer,
+            "message": "Please provide an update.",
+        }
+        comment_data.update(kwargs)
+
+        return TicketComment.objects.create(**comment_data)
+
+    def test_comment_uses_uuid_as_primary_key(self):
+        comment = self.create_comment()
+
+        self.assertIsInstance(comment.id, uuid.UUID)
+
+    def test_comment_relationships_are_saved(self):
+        comment = self.create_comment()
+
+        self.assertEqual(comment.ticket, self.ticket)
+        self.assertEqual(comment.author, self.customer)
+        self.assertEqual(comment.message, "Please provide an update.")
+
+    def test_comment_string_representation(self):
+        comment = self.create_comment()
+
+        self.assertEqual(
+            str(comment),
+            "comment_customer: Please provide an update.",
+        )
+
+    def test_deleting_ticket_deletes_its_comments(self):
+        comment = self.create_comment()
+        comment_id = comment.id
+
+        self.ticket.delete()
+
+        self.assertFalse(
+            TicketComment.objects.filter(id=comment_id).exists()
         )

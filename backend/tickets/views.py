@@ -1,11 +1,16 @@
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Category, Ticket
+from .models import Category, Ticket, TicketComment
 from .pagination import TicketPagination
 from .permissions import IsTicketParticipantOrStaff
-from .serializers import CategorySerializer, TicketSerializer
+from .serializers import (
+    CategorySerializer,
+    TicketCommentSerializer,
+    TicketSerializer,
+)
 
 
 def get_tickets_for_user(user):
@@ -75,3 +80,28 @@ class TicketDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return get_tickets_for_user(self.request.user)
+
+
+class TicketCommentListCreateView(generics.ListCreateAPIView):
+    serializer_class = TicketCommentSerializer
+    permission_classes = (IsTicketParticipantOrStaff,)
+
+    def get_ticket(self):
+        return get_object_or_404(
+            get_tickets_for_user(self.request.user),
+            id=self.kwargs["ticket_pk"],
+        )
+
+    def get_queryset(self):
+        return TicketComment.objects.filter(
+            ticket=self.get_ticket(),
+        ).select_related(
+            "ticket",
+            "author",
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(
+            ticket=self.get_ticket(),
+            author=self.request.user,
+        )
